@@ -1,5 +1,5 @@
 /*
- *  TerrainDataProvider.cpp
+ *  ofxShadowedTerrain.cpp
  *  LandscapeShadow4
  *
  *  Created by Matthias Rohrbach on 30.09.10.
@@ -7,12 +7,10 @@
  *
  */
 
-#include "TerrainDataProvider.h"
+#include "ofxShadowedTerrain.h"
 #include <fstream>
-//#include <omp.h>
 
-
-TerrainDataProvider::TerrainDataProvider(){
+ofxShadowedTerrain::ofxShadowedTerrain(){
 	heightmaploaded=false;
 	
 	shadowcolor.r=0;
@@ -26,48 +24,49 @@ TerrainDataProvider::TerrainDataProvider(){
 	lightcolor.a=255;
 	
 	zstretchfact=1;
+    
 }
 
-TerrainDataProvider::~TerrainDataProvider(){
+ofxShadowedTerrain::~ofxShadowedTerrain(){
 	
 }
 
-void TerrainDataProvider::firstUpdate(){
-	shadowimg.allocate(1024, 1024, OF_IMAGE_GRAYSCALE);
-}
 
-void TerrainDataProvider::setLightAngles(float _xangle, float _yangle){
-	ofxVec3f dir;
+
+void ofxShadowedTerrain::setLightAngles(float _xangle, float _yangle){
+	ofVec3f dir;
 	dir.set(0,1,0);
-	dir.rotate(_xangle, ofxVec3f(1,0,0));
-	dir.rotate(_yangle, ofxVec3f(0,1,0));
+	dir.rotate(_xangle, ofVec3f(1,0,0));
+	dir.rotate(_yangle, ofVec3f(0,1,0));
 	dir.normalize();
-
 	setLightDirection(dir);
 }
 
-void TerrainDataProvider::setLightDirection(ofxVec3f _dir){
+void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 	
-	_dir*=100.0;
+    // rounding because we dont have sooo many precalculated pictures available
+    _dir*=100.0;
 	_dir.x=round(_dir.x);
 	_dir.y=round(_dir.y);
 	_dir.z=round(_dir.z);
-	
 	_dir/=100.0;
+    
 	
-	if(_dir==ofxVec3f(0,1,0))return;
+	if(_dir==ofVec3f(0,1,0))return;
 	if(_dir==lightdir)return;
 	
+    
 	lightdir=_dir;
 	int accuracy=2;
 	shadowimg.clear();
-	string filename="media/shadowmaps/sm"+ofToString(_dir.x, accuracy)+"_"+ofToString(_dir.y, accuracy)+"_"+ofToString(_dir.z, accuracy)+".png";
+	
+    string filename="media/shadowmaps/sm"+ofToString(_dir.x, accuracy)+"_"+ofToString(_dir.y, accuracy)+"_"+ofToString(_dir.z, accuracy)+".png";
 	
 	// Check if File already exists, if so return this file
 	ifstream ifile(ofToDataPath(filename, true).c_str());
 	if(ifile){
 		shadowimg.loadImage(filename);
-		return;		
+		return;
 	}
 	
 	float lightdirfloat[3];
@@ -101,22 +100,11 @@ void TerrainDataProvider::setLightDirection(ofxVec3f _dir){
 	}
 	
 	shadowimg.setFromPixels(lightmapforcalc, gridw, gridh, OF_IMAGE_GRAYSCALE);
-	shadowimg.saveImage(filename);	
-	
+	shadowimg.saveImage(filename);
 }
 
 
-void TerrainDataProvider::update(){
-
-}
-
-void TerrainDataProvider::_draw(){
-
-}
-
-
-
-double TerrainDataProvider::value(double x, double y)
+double ofxShadowedTerrain::value(double x, double y)
 {
 	if(x>=0 && x<gridw && y>=0 && y<gridh && heightmaploaded){
 		int index=(y*gridw)+x;
@@ -125,12 +113,13 @@ double TerrainDataProvider::value(double x, double y)
 	return 0;
 }
 
-SPoint TerrainDataProvider::lower_bound()
+
+SPoint ofxShadowedTerrain::lower_bound()
 {
 	return SPoint(0,0);
 }
 
-SPoint TerrainDataProvider::upper_bound()
+SPoint ofxShadowedTerrain::upper_bound()
 {
 	return SPoint(1023,1023);
 }
@@ -138,12 +127,129 @@ SPoint TerrainDataProvider::upper_bound()
 
 
 
-
-ofImage* TerrainDataProvider::getShadowImage(){
+ofImage* ofxShadowedTerrain::getShadowImage(){
 	return &shadowimg;
 }
 
-void TerrainDataProvider::loadHeightMap(string _filename){
+
+// LOAD FROM IMAGE:
+
+void ofxShadowedTerrain::loadMapFromImage(string _filename){
+    heightmapimg.loadImage(_filename);
+	
+    mesh.setMode(OF_PRIMITIVE_TRIANGLES);
+	int skip = 1;
+	gridw = heightmapimg.getWidth();
+	gridh = heightmapimg.getHeight();
+	
+    for(int y = 0; y < gridh - skip; y += skip) {
+		for(int x = 0; x < gridw - skip; x += skip) {
+			ofVec3f nw = getVertexFromImg(heightmapimg, x, y);
+			ofVec3f ne = getVertexFromImg(heightmapimg, x + skip, y);
+			ofVec3f sw = getVertexFromImg(heightmapimg, x, y + skip);
+			ofVec3f se = getVertexFromImg(heightmapimg, x + skip, y + skip);
+			
+			addFace(mesh, nw, ne, se, sw);
+		}
+	}
+    shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
+}
+
+ofVec3f ofxShadowedTerrain::getVertexFromImg(ofFloatImage& img, int x, int y) {
+    return ofVec3f(x, y, 100 * img.getColor(x, y).getBrightness());
+}
+
+void ofxShadowedTerrain::addFace(ofMesh& mesh, ofVec3f a, ofVec3f b, ofVec3f c) {
+	ofVec3f normal = ((b - a).cross(c - a)).normalize();
+    mesh.addNormal(normal);
+	mesh.addVertex(a);
+	mesh.addTexCoord(a);
+	mesh.addNormal(normal);
+	mesh.addVertex(b);
+    mesh.addTexCoord(b);
+    mesh.addNormal(normal);
+	mesh.addVertex(c);
+    mesh.addTexCoord(c);
+}
+
+void ofxShadowedTerrain::addFace(ofMesh& mesh, ofVec3f a, ofVec3f b, ofVec3f c, ofVec3f d) {
+	addFace(mesh, a, b, c);
+	addFace(mesh, a, c, d);
+}
+
+
+// LOAD FROM TEXTFILE:
+
+void ofxShadowedTerrain::loadMapFromTextfile(string _filename){
+  
+    loadHeightmapData(_filename);
+    mesh.setMode(OF_PRIMITIVE_TRIANGLES);
+	int skip = 1;
+	gridw = heightmapdataobj.ncols;
+	gridh = heightmapdataobj.nrows;
+	
+    for(int y = 0; y < gridh - skip; y += skip) {
+		for(int x = 0; x < gridw - skip; x += skip) {
+            ofVec3f nw= heightmapdataobj.getVertexAt(x, y);
+            ofVec3f ne=heightmapdataobj.getVertexAt(x+skip, y);
+			ofVec3f sw=heightmapdataobj.getVertexAt(x, y+skip);
+			ofVec3f se=heightmapdataobj.getVertexAt(x+skip, y+skip);
+            addFace(mesh, nw, ne, se, sw);
+		}
+	}
+    shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
+}
+
+
+void ofxShadowedTerrain::loadHeightmapData(string _filename){
+    ifstream data;
+	string line;
+	float zraw;
+    
+    heightmapdataobj.mydata.clear();
+	
+    data.open(ofToDataPath(_filename,true).c_str());
+	while(!data.eof()){
+		getline(data, line);
+		vector<string>linevec=ofSplitString(line, " ");
+		if(linevec.size()>0){
+			if(linevec.at(0)=="NCOLS"){
+				heightmapdataobj.ncols=atoi(linevec[1].c_str());
+			}else if(linevec.at(0)=="NROWS"){
+				heightmapdataobj.nrows=atoi(linevec[1].c_str());
+			}
+			else if(linevec.at(0)=="XLLCORNER"){
+				heightmapdataobj.xllcorner=atoi(linevec[1].c_str());
+			}
+			else if(linevec.at(0)=="YLLCORNER"){
+				heightmapdataobj.yllcorner=atoi(linevec[1].c_str());
+			}
+			else if(linevec.at(0)=="CELLSIZE"){
+				heightmapdataobj.cellsize=atoi(linevec[1].c_str());
+			}
+			else if(linevec.at(0)=="NODATA_VALUE"){
+				heightmapdataobj.nodata_value=atoi(linevec[1].c_str());
+			}
+			else{
+                
+				for(int i=0;i<linevec.size();i++){
+					zraw=atof(linevec[i].c_str());
+					if(zraw==heightmapdataobj.nodata_value){
+						zraw=0;
+					}
+					zraw/=heightmapdataobj.cellsize;
+					zraw*=zstretchfact;
+                    heightmapdataobj.mydata.push_back(zraw);
+				}
+			}
+		}
+	}
+}
+
+
+
+
+void ofxShadowedTerrain::loadMapFromTextfileOld(string _filename){
 	
 	ifstream data;
 	string line;
@@ -180,14 +286,15 @@ void TerrainDataProvider::loadHeightMap(string _filename){
 					}
 					zraw/=cellsize;
 					zraw*=zstretchfact;
-					
 					heightmapdata.push_back(zraw);
 				}
 			}
 		}
 	}
 	
+
 	
+    
 	// calculate Vertices
 	
 	int offx=0;
@@ -218,39 +325,18 @@ void TerrainDataProvider::loadHeightMap(string _filename){
 	
 	// Calculate Normals:		
 	
-	normals=new ofxVec3f[numvalues];
-	smoothnormals=new ofxVec3f[numvalues];
+	normals=new ofVec3f[numvalues];
+	smoothnormals=new ofVec3f[numvalues];
 	
 	
-	ofxVec3f norm;
+	ofVec3f norm;
 	norm.set(0,0,0);
 	
 	for(int i=0;i<numvalues;i++){
 		normals[i]=norm;
 		smoothnormals[i]=norm;
-		
 	}
-	
-	
-	
-	/*
-	HeightField::Vertex const * const paV = hf.GetData( x, y );
-	
-	int const sx = hf.GetSizeX();
-	int const sy = hf.GetSizeY();
-	float const scale = hf.GetXYScale();
-	
-	float const z0 = paV[ 0 ].m_Z;
-	
-	float const Az = ( x + 1 < sx ) ? ( paV[   1 ].m_Z ) : z0;
-	float const Bz = ( y + 1 < sy ) ? ( paV[  sx ].m_Z ) : z0;
-	float const Cz = ( x - 1 >= 0 ) ? ( paV[  -1 ].m_Z ) : z0;
-	float const Dz = ( y - 1 >= 0 ) ? ( paV[ -sx ].m_Z ) : z0;
-	
-	return Vector3( Cz - Az, Dz - Bz, 2.f * scale ).Normalize();
-	*/
-	
-	
+		
 	float x1,y1,z1;
 	float x2,y2,z2;
 	float x3,y3,z3;
@@ -258,7 +344,7 @@ void TerrainDataProvider::loadHeightMap(string _filename){
 	float c1, c2;
 	
 	int ind0, ind1, ind2, ind3, ind4, ind5, ind6, ind7, ind8;
-	ofxVec3f vec0, vec1, vec2, vec3, vec4, vec5, vec6, vec7, vec8;
+	ofVec3f vec0, vec1, vec2, vec3, vec4, vec5, vec6, vec7, vec8;
 	
 	for(int h=1;h<gridh-1; h++){
 		for(int i=1;i<gridw-1; i++){
@@ -269,50 +355,44 @@ void TerrainDataProvider::loadHeightMap(string _filename){
 			ind3=(i)+(h+1)*gridw;
 			ind4=(i-1)+(h)*gridw;
 			
-
-			norm.x=heightmap[ind4]-heightmap[ind2];
+            norm.x=heightmap[ind4]-heightmap[ind2];
 			norm.y=heightmap[ind1]-heightmap[ind3];
 			norm.z=2;
-			
 			norm.normalize();
-		
-			normals[ind0].set(norm);
-			
+            normals[ind0].set(norm);
 		}
 	}
-	
 	
 	float smoothfakt=.6;
-		
+    
 	for(int k=0;k<10;k++){
-	
-	for(int h=1;h<gridh-1; h++){
-		for(int i=1;i<gridw-1; i++){
-			ind0=i+h*gridw;
-			
-			ind1=(i)+(h-1)*gridw;
-			ind2=(i+1)+(h)*gridw;
-			ind3=(i)+(h+1)*gridw;
-			ind4=(i-1)+(h)*gridw;
-			
-			norm=normals[ind0];
-			norm+=normals[ind1]*smoothfakt;
-			norm+=normals[ind2]*smoothfakt;
-			norm+=normals[ind3]*smoothfakt;
-			norm+=normals[ind4]*smoothfakt;
-			
-			norm.normalize();
-			smoothnormals[ind0]=norm;
-			
-		}
-	}
-	 
+        for(int h=1;h<gridh-1; h++){
+            for(int i=1;i<gridw-1; i++){
+                ind0=i+h*gridw;
+                
+                ind1=(i)+(h-1)*gridw;
+                ind2=(i+1)+(h)*gridw;
+                ind3=(i)+(h+1)*gridw;
+                ind4=(i-1)+(h)*gridw;
+                
+                norm=normals[ind0];
+                norm+=normals[ind1]*smoothfakt;
+                norm+=normals[ind2]*smoothfakt;
+                norm+=normals[ind3]*smoothfakt;
+                norm+=normals[ind4]*smoothfakt;
+                
+                norm.normalize();
+                smoothnormals[ind0]=norm;
+                
+            }
+        }
 	}
 	
 	heightmaploaded=true;
+    shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
 }
 
-ofxVec3f TerrainDataProvider::getNormalAt(int x, int y){
+ofVec3f ofxShadowedTerrain::getNormalAt(int x, int y){
 	
 	if(x>=0 && x<gridw && y>=0 && y<gridh){
 	
@@ -320,11 +400,11 @@ ofxVec3f TerrainDataProvider::getNormalAt(int x, int y){
 		return normals[index];
 	}
 	
-	return ofxVec3f(0,0,0);
+	return ofVec3f(0,0,0);
 	
 }
 
-ofxVec3f TerrainDataProvider::getSmoothNormalAt(int x, int y){
+ofVec3f ofxShadowedTerrain::getSmoothNormalAt(int x, int y){
 	
 	if(x>=0 && x<gridw && y>=0 && y<gridh){
 		
@@ -332,20 +412,24 @@ ofxVec3f TerrainDataProvider::getSmoothNormalAt(int x, int y){
 		return smoothnormals[index];
 	}
 	
-	return ofxVec3f(0,0,0);
+	return ofVec3f(0,0,0);
 	
+}
+
+
+void ofxShadowedTerrain::drawMesh(){
+    mesh.draw();
 }
 
 
 
 
-
-void TerrainDataProvider::drawForColor(){
+void ofxShadowedTerrain::drawForColor(){
 	int ind1, ind2;
 	float x1,y1,z1, x2,y2,z2;
 	
-	msaColor c1;
-	msaColor c2;
+	ofColor c1;
+	ofColor c2;
 	
 	
 	for(int h=0;h<gridh-1; h++){
@@ -365,10 +449,8 @@ void TerrainDataProvider::drawForColor(){
 			y2=h+1;
 			z2=heightmap[ind2];
 			
-			
-			
-			c1.setHSV(z1*10, 1, 1, 1);
-			c2.setHSV(z2*10 ,1,1,1);
+			c1.setHsb(z1*10, 1, 1, 1);
+			c2.setHsb(z2*10,1,1,1);
 			
 			
 			glColor3f(c1.r,c1.g,c1.b);
@@ -388,12 +470,12 @@ void TerrainDataProvider::drawForColor(){
 }
 
 
-void TerrainDataProvider::drawForTexture(){
+void ofxShadowedTerrain::drawForTexture(){
 	int ind1, ind2;
 	float x1,y1,z1, x2,y2,z2;
 	float c1,c2;
 	
-	int step=4;
+	int step=3;
 	
 	for(int h=0;h<gridh-step; h+=step){
 		
@@ -414,40 +496,35 @@ void TerrainDataProvider::drawForTexture(){
 			y2=h+step;
 			z2=heightmap[ind2];
 			
-			glTexCoord2d(i/(double)gridw,h/(double)gridh);
-			//glNormal3f(normals[ind1].x, normals[ind1].y, normals[ind1].z);
+			
+            glTexCoord2d(i,h);
+			glNormal3f(normals[ind1].x, normals[ind1].y, normals[ind1].z);
 			glVertex3f(x1,y1,z1);
 			
-			glTexCoord2d((i)/(double)gridw,(h+step)/(double)gridh);
-			//glNormal3f(normals[ind2].x, normals[ind2].y, normals[ind2].z);
+			glTexCoord2d(i,h+step);
+			glNormal3f(normals[ind2].x, normals[ind2].y, normals[ind2].z);
 			glVertex3f(x2, y2, z2);
 			
 			if(i==gridw-1)break;
-			
 			if(i+step>gridw-1){
 				i=gridw-1-step;
 			}
 			
 		}
 		glEnd();
-		
 		if(h==gridh-step-1)break;
-		
 		if(h+step>gridh-step-1){
 			h=gridh-1-step-step;
 		}
 	}
-	
-	
-	
-	
+
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////  LIGHT MAPPING
 
 
-void TerrainDataProvider::updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]){
+void ofxShadowedTerrain::updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]){
 	
 	// create flag buffer to indicate where we've been
 	float *flagMap = new float[size*size];
@@ -656,15 +733,14 @@ void TerrainDataProvider::updateLightMap(float *heightmap, unsigned char *lightm
 			if(iX >= size) break;
 		}
 	}
-	
 	delete [] flagMap;
 }
 
 
 
-void TerrainDataProvider::updateLightMapFast(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]){
+void ofxShadowedTerrain::updateLightMapFast(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]){
 	
-	const int anzvalues=size*size;
+    const int anzvalues=size*size;
 	
 	// create flag buffer to indicate where we've been
 	float *flagMap = new float[size*size];

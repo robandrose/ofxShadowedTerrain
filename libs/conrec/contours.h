@@ -24,7 +24,6 @@
 #include <algorithm>
 
 
-
 #define MYDIFFERENCE 0.0005
 
 using namespace std;
