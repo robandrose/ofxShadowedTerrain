@@ -13,6 +13,7 @@ Eigentlich das Model für das Terrain, weiss alles, kann alles.
 #pragma once
 #include "ofMain.h"
 #include "contours.h"
+#include "ofxOpenCv.h"
 
 
 struct heightMapData{
@@ -80,7 +81,7 @@ private:
     
 	ofVec3f calculateNormal(int x, int y);
 	ofVec3f getVertexFromImg(ofFloatImage& img, int x, int y);
-    float getValueFromImagePos(ofFloatImage& img, int x, int y);
+    float getValueFromImagePos(ofFloatImage& img, int x, int y); 
     void addFace(ofMesh& mesh, ofVec3f a, ofVec3f b, ofVec3f c);
     void addFace(ofMesh& mesh, ofVec3f a, ofVec3f b, ofVec3f c, ofVec3f d);
     
@@ -90,8 +91,7 @@ private:
     
     void prepareForShadows();
     void updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
-	void updateLightMapFast(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
-    
+	
     
 	// ASC VARS	
 	int ncols, nrows;
@@ -120,8 +120,9 @@ private:
 	
 	ofColor shadowcolor;
 	ofColor	lightcolor;
-	ofImage shadowimg;	
-	
+	ofImage shadowimg;
+	ofxCvGrayscaleImage blurimg;
+    
 	float shadowalpha;
 	float zstretchfact;
     

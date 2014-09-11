@@ -64,11 +64,12 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 	// Check if File already exists, if so return this file
 	ifstream ifile(ofToDataPath(filename, true).c_str());
 	
+    /*
     if(ifile){
 		shadowimg.loadImage(filename);
 		return;
 	}
-	
+	*/
     
     
 	float lightdirfloat[3];
@@ -87,22 +88,23 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 		lightmap[ind+3]=lightcolor.a;
 	}
 	
-	updateLightMapFast(heightmap, lightmapforcalc, gridw, lightdirfloat);
+	updateLightMap(heightmap, lightmapforcalc, gridw, lightdirfloat);
 	
 	for(int i=0;i<numvalues;i++){
 		float bright=lightmapforcalc[i];
 		int ind=i*4;
-		if(bright==0){
-			// Schattenfarbe
-			lightmap[ind]=shadowcolor.r;
-			lightmap[ind+1]=shadowcolor.g;
-			lightmap[ind+2]=shadowcolor.b;
-			lightmap[ind+3]=shadowcolor.a;
-		}
+        lightmap[ind]=shadowcolor.r;
+		lightmap[ind+1]=shadowcolor.g;
+		lightmap[ind+2]=shadowcolor.b;
+		lightmap[ind+3]=bright*2;
+		
 	}
+	blurimg.setFromPixels(lightmapforcalc, gridw, gridh);
+    blurimg.blurGaussian(5);
+    
+	shadowimg.setFromPixels(blurimg.getPixels(), gridw, gridh, OF_IMAGE_GRAYSCALE);
 	
-	shadowimg.setFromPixels(lightmapforcalc, gridw, gridh, OF_IMAGE_GRAYSCALE);
-	shadowimg.saveImage(filename);
+   // shadowimg.saveImage(filename);
 }
 
 
@@ -558,223 +560,8 @@ void ofxShadowedTerrain::drawForTexture(){
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////  LIGHT MAPPING
 
 
+
 void ofxShadowedTerrain::updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]){
-	
-	// create flag buffer to indicate where we've been
-	float *flagMap = new float[size*size];
-	float *shadowColor=new float[3];
-	
-	shadowColor[0]=0;
-	shadowColor[1]=0;
-	shadowColor[2]=0;
-	
-	for(int i = 0; i < size*size; i++) 
-		flagMap[i] = 0;
-	
-	int *X, *Y;
-	int iX, iY;
-	int dirX, dirY;
-	
-	// calculate absolute values for light direction
-	float lightDirXMagnitude = lightDir[0];
-	float lightDirZMagnitude = lightDir[2];
-	if(lightDirXMagnitude < 0) lightDirXMagnitude *= -1;
-	if(lightDirZMagnitude < 0) lightDirZMagnitude *= -1;
-	
-	// decide which loop will come first, the y loop or x loop
-	// based on direction of light, makes calculations faster
-	if(lightDirXMagnitude > lightDirZMagnitude)
-	{
-		Y = &iX;
-		X = &iY;
-		
-		if(lightDir[0] < 0)
-		{
-			iY = size-1;
-			dirY = -1;
-		}
-		else
-		{
-			iY = 0;
-			dirY = 1;
-		}
-		
-		if(lightDir[2] < 0)
-		{
-			iX = size-1;
-			dirX = -1;
-		}
-		else
-		{
-			iX = 0;
-			dirX = 1;
-		}
-	}
-	else
-	{
-		Y = &iY;
-		X = &iX;
-		
-		if(lightDir[0] < 0)
-		{
-			iX = size-1;
-			dirX = -1;
-		}
-		else
-		{
-			iX = 0;
-			dirX = 1;
-		}
-		
-		if(lightDir[2] < 0)
-		{
-			iY = size-1;
-			dirY = -1;
-		}
-		else
-		{
-			iY = 0;
-			dirY = 1;
-		}
-	}
-	
-	// outer loop
-	while(1)
-	{
-		// inner loop
-		while(1)
-		{
-			// travel along the terrain until we:
-			// (1) intersect another point
-			// (2) find another point with previous collision data
-			// (3) or reach the edge of the map
-			float px = *X;
-			float py = *Y;
-			int index = (*Y) * size + (*X);
-			
-			// travel along ray
-			while(1)
-			{
-				px -= lightDir[0];
-				py -= lightDir[2];
-				
-				// check if we've reached the boundary
-				if(px < 0 || px >= size || py < 0 || py >= size)
-				{  
-					flagMap[index] = -1;
-					break;
-				}
-				
-				// calculate interpolated values
-				static int x0, x1, y0, y1;
-				static float du, dv;
-				static float interpolatedHeight, interpolatedFlagMap;
-				static float heights[4];
-				static float pixels[4];
-				static float invdu, invdv;
-				static float w0, w1, w2, w3;
-				
-				x0 = floor(px);
-				x1 = ceil(px);
-				y0 = floor(py);
-				y1 = ceil(py);
-				
-				du = px - x0;
-				dv = py - y0;
-				
-				invdu = 1.0 - du;
-				invdv = 1.0 - dv;
-				w0 = invdu * invdv;
-				w1 = invdu * dv;
-				w2 = du * invdv;
-				w3 = du * dv;
-				
-				// compute interpolated height value from the heightmap direction below ray
-				heights[0] = heightmap[y0*size+x0];
-				heights[1] = heightmap[y1*size+x0];
-				heights[2] = heightmap[y0*size+x1];
-				heights[3] = heightmap[y1*size+x1];
-				interpolatedHeight = w0*heights[0] + w1*heights[1] + w2*heights[2] + w3*heights[3];
-				
-				// compute interpolated flagmap value from point directly below ray
-				pixels[0] = flagMap[y0*size+x0];
-				pixels[1] = flagMap[y1*size+x0];
-				pixels[2] = flagMap[y0*size+x1];
-				pixels[3] = flagMap[y1*size+x1];
-				interpolatedFlagMap = w0*pixels[0] + w1*pixels[1] + w2*pixels[2] + w3*pixels[3];
-				
-				// get distance from original point to current point
-				float distance = sqrt( (px-*X)*(px-*X) + (py-*Y)*(py-*Y) );
-				
-				// get height at current point while traveling along light ray
-				float height = heightmap[index] + lightDir[1]*distance;
-				
-				// check intersection with either terrain or flagMap
-				// if interpolatedHeight is less than interpolatedFlagMap that means we need to use the flagMap value instead
-				// else use the height value
-				static float val;
-				val = interpolatedHeight;
-				if(interpolatedHeight < interpolatedFlagMap) val = interpolatedFlagMap;
-				if(height < val)
-				{
-					flagMap[index] = val - height;
-					
-					lightmap[index*3+0] = shadowColor[0];
-					lightmap[index*3+1] = shadowColor[1];
-					lightmap[index*3+2] = shadowColor[2];
-					
-					break;
-				}
-				
-				// check if pixel we've moved to is unshadowed
-				// since the flagMap value we're using is interpolated, we will be in between shadowed and unshadowed areas
-				// to compensate for this, simply define some epsilon value and use this as an offset from -1 to decide
-				// if current point under the ray is unshadowed
-				static float epsilon = 0.5f;
-				if(interpolatedFlagMap < -1.0f+epsilon && interpolatedFlagMap > -1.0f-epsilon)
-				{
-					flagMap[index] = -1.0f;
-					break;
-				}   
-			}
-			
-			// update inner loop variable
-			if(dirY < 0)
-			{
-				iY--;
-				if(iY < 0) break;
-			}
-			else
-			{
-				iY++;
-				if(iY >= size) break;
-			}
-		}
-		
-		// reset inner loop starting point
-		if(dirY < 0) iY = size - 1;
-		else iY = 0;
-		
-		// update outer loop variable
-		if(dirX < 0)
-		{
-			iX--;
-			if(iX < 0) break;
-		}
-		else
-		{
-			iX++;
-			if(iX >= size) break;
-		}
-	}
-	delete [] flagMap;
-}
-
-
-
-
-
-void ofxShadowedTerrain::updateLightMapFast(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]){
 	
     const int anzvalues=size*size;
 	
@@ -875,7 +662,7 @@ lightDirZMagnitude, heightmap, lightmap, flagMap, size, lightDir) schedule(stati
 				py -= lightDir[2];
 				
 				// check if we've reached the boundary
-				if(px < 0 || px >= size || py < 0 || py >= size)
+				if(px < 0 || px >= size-1 || py < 0 || py >= size-1)
 				{  
 					flagMap[index] = -1;
 					break;
@@ -907,10 +694,8 @@ lightDirZMagnitude, heightmap, lightmap, flagMap, size, lightDir) schedule(stati
 				w1 = invdu * dv;
 				w2 = du * invdv;
 				w3 = du * dv;
-				
-				// compute interpolated height value from the heightmap direction below ray
-				interpolatedHeight = w0*heightmap[y0*size+x0] + w1*heightmap[y1*size+x0] + 
-				w2*heightmap[y0*size+x1] + w3*heightmap[y1*size+x1];
+                
+                
 				
 				// compute interpolated flagmap value from point directly below ray
 				int ind1,ind2, ind3, ind4;
@@ -928,7 +713,7 @@ lightDirZMagnitude, heightmap, lightmap, flagMap, size, lightDir) schedule(stati
 				if(ind4<0)ind4=0;
 				if(ind4>=anzvalues)ind4=anzvalues-1;
 				
-				
+				interpolatedHeight = w0*heightmap[ind1] + w1*heightmap[ind2] + w2*heightmap[ind3] + w3*heightmap[ind4];
 				interpolatedFlagMap = w0*flagMap[ind1] + w1*flagMap[ind2] + w2*flagMap[ind3] + w3*flagMap[ind4];
 				
 				
@@ -950,9 +735,7 @@ lightDirZMagnitude, heightmap, lightmap, flagMap, size, lightDir) schedule(stati
 				if(height < val)
 				{
 					flagMap[index] = val - height;
-					
-					lightmap[index] = 0;
-					
+					lightmap[index] = distance;
 					break;
 				}
 				
@@ -974,76 +757,3 @@ lightDirZMagnitude, heightmap, lightmap, flagMap, size, lightDir) schedule(stati
 	
 	delete [] flagMap;
 }
-
-
-
-/*
-
-
-
-int intersect_map(const vector3& iv,const ray& r,Image* hm,float fHeightScale){
-    int w,hits;
-    float d,h,D;
-    vector3 v,dir;
-    
-    v = iv + r.direction;
-    w = hm->w;
-    
-    hits = 0;
-    
-    while (!(( v.x >= w-1 ) || ( v.x <= 0 ) || ( v.z >= w-1 ) || ( v.z <= 0 ))){
-        // length of lightdir's projection
-        D = Magnitude(vector3(v.x,0,v.z)-vector3(r.origin.x,0,r.origin.z));
-        d = Magnitude(iv-v);            // light direction
-        h = iv.y + (d*r.origin.y) / D;  // X(P) point
-        
-        // check if height in point P is bigger than point X's height
-        if (hm->data[ifloor(v.z)* w + ifloor(v.x)] * fHeightScale > h){
-            hits++;   // if so, mark as hit, and skip this work point.
-            break;
-        };
-        
-        dir = r.direction;
-        dir.y = 0;
-        v += Normalize(dir);   // fetch new working point
-    };
-    return hits;
-};
-
-Image* genLightmap(char* normal,Image* hm,vector3 fSunDir,int w,float fAmbient){
-    int i,j,hits;
-    float f,dot;
-    vector3 n,fVertex;
-    Image* lmap;
-    ray r;
-    
-    float fHeightScale = 10.0f / 255.0f;
-    lmap = new Image(w,w,1);
-    if (!lmap){printf("(!) Error: cannot alloc lightmap!\n");return 0;};
-    
-    for (j=0; jdata[j*w+i] * fHeightScale;
-         fVertex.z = j;
-         
-         f = fAmbient ;
-         
-         r.origin = fVertex + fSunDir * 2000.0f;
-         r.direction = fSunDir;
-         
-         // checks current working point for intersection
-         if (!intersect_map(fVertex,r,hm,fHeightScale)){
-             // compute the lighting equation
-             n.x = (float)(normal[3*(j*w+i)+0]);
-             n.y = (float)(normal[3*(j*w+i)+1]);
-             n.z = (float)(normal[3*(j*w+i)+2]);
-             f += 0.5f*(1.0f+DotProduct(Normalize(n),Normalize(fSunDir)));
-             if (f>1.0f) f = 1.0f;
-         };
-         
-         dot = f * 255.0f;
-         lmap->data[j*w+i] = (unsigned char)dot;
-         };
-         };
-         return lmap;
-         };
-
-*/
