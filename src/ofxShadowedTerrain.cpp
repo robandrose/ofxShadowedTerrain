@@ -132,7 +132,7 @@ ofImage* ofxShadowedTerrain::getShadowImage(){
 }
 
 
-// LOAD FROM IMAGE:
+//***************************************************************** // LOADING:
 
 void ofxShadowedTerrain::loadMapFromImage(string _filename){
     heightmapimg.loadImage(_filename);
@@ -246,7 +246,7 @@ void ofxShadowedTerrain::loadHeightmapData(string _filename){
 	}
 }
 
-
+//***************************************************************** // END LOADING:
 
 
 void ofxShadowedTerrain::loadMapFromTextfileOld(string _filename){

@@ -37,9 +37,6 @@ struct heightMapData{
 
 class ofxShadowedTerrain: public CRaster{
 
-	
-
-
     
     
 public:
