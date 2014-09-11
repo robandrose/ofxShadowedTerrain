@@ -39,6 +39,7 @@ void ofxShadowedTerrain::setLightAngles(float _xangle, float _yangle){
 	dir.rotate(_xangle, ofVec3f(1,0,0));
 	dir.rotate(_yangle, ofVec3f(0,1,0));
 	dir.normalize();
+    
 	setLightDirection(dir);
 }
 
@@ -55,20 +56,21 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 	if(_dir==ofVec3f(0,1,0))return;
 	if(_dir==lightdir)return;
 	
-    
 	lightdir=_dir;
 	int accuracy=2;
-	shadowimg.clear();
 	
     string filename="media/shadowmaps/sm"+ofToString(_dir.x, accuracy)+"_"+ofToString(_dir.y, accuracy)+"_"+ofToString(_dir.z, accuracy)+".png";
 	
 	// Check if File already exists, if so return this file
 	ifstream ifile(ofToDataPath(filename, true).c_str());
-	if(ifile){
+	
+    if(ifile){
 		shadowimg.loadImage(filename);
 		return;
 	}
 	
+    
+    
 	float lightdirfloat[3];
 	lightdirfloat[0]=lightdir.x;
 	lightdirfloat[1]=lightdir.y;
@@ -85,7 +87,7 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 		lightmap[ind+3]=lightcolor.a;
 	}
 	
-	updateLightMapFast(heightmap, lightmapforcalc, gridw, lightdirfloat);	
+	updateLightMapFast(heightmap, lightmapforcalc, gridw, lightdirfloat);
 	
 	for(int i=0;i<numvalues;i++){
 		float bright=lightmapforcalc[i];
@@ -100,7 +102,7 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 	}
 	
 	shadowimg.setFromPixels(lightmapforcalc, gridw, gridh, OF_IMAGE_GRAYSCALE);
-	shadowimg.saveImage(filename);
+	//shadowimg.saveImage(filename);
 }
 
 
@@ -155,6 +157,8 @@ void ofxShadowedTerrain::loadMapFromImage(string _filename){
     shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
 }
 
+
+
 ofVec3f ofxShadowedTerrain::getVertexFromImg(ofFloatImage& img, int x, int y) {
     return ofVec3f(x, y, 100 * img.getColor(x, y).getBrightness());
 }
@@ -197,6 +201,7 @@ void ofxShadowedTerrain::loadMapFromTextfile(string _filename){
             addFace(mesh, nw, ne, se, sw);
 		}
 	}
+    
     shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
 }
 
@@ -244,9 +249,41 @@ void ofxShadowedTerrain::loadHeightmapData(string _filename){
 			}
 		}
 	}
+    
+    prepareForShadows();
 }
 
 //***************************************************************** // END LOADING:
+
+
+
+void ofxShadowedTerrain::prepareForShadows(){
+    
+	// calculate Vertices
+	
+	int offx=0;
+	int offy=0;
+	
+	gridw=ncols;
+	gridh=nrows;
+	
+	numvalues=gridw*gridh;
+	heightmap=new float[numvalues];
+	lightmapforcalc=new unsigned char[numvalues];
+	lightmap=new unsigned char[numvalues*4];
+	
+		
+	for(int i=0;i<numvalues;i++){
+		heightmap[i]=heightmapdataobj.mydata[i];
+	}
+    heightmaploaded=true;
+
+    
+}
+
+
+
+
 
 
 void ofxShadowedTerrain::loadMapFromTextfileOld(string _filename){
@@ -738,6 +775,8 @@ void ofxShadowedTerrain::updateLightMap(float *heightmap, unsigned char *lightma
 
 
 
+
+
 void ofxShadowedTerrain::updateLightMapFast(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]){
 	
     const int anzvalues=size*size;
@@ -938,3 +977,76 @@ lightDirZMagnitude, heightmap, lightmap, flagMap, size, lightDir) schedule(stati
 	
 	delete [] flagMap;
 }
+
+
+
+/*
+
+
+
+int intersect_map(const vector3& iv,const ray& r,Image* hm,float fHeightScale){
+    int w,hits;
+    float d,h,D;
+    vector3 v,dir;
+    
+    v = iv + r.direction;
+    w = hm->w;
+    
+    hits = 0;
+    
+    while (!(( v.x >= w-1 ) || ( v.x <= 0 ) || ( v.z >= w-1 ) || ( v.z <= 0 ))){
+        // length of lightdir's projection
+        D = Magnitude(vector3(v.x,0,v.z)-vector3(r.origin.x,0,r.origin.z));
+        d = Magnitude(iv-v);            // light direction
+        h = iv.y + (d*r.origin.y) / D;  // X(P) point
+        
+        // check if height in point P is bigger than point X's height
+        if (hm->data[ifloor(v.z)* w + ifloor(v.x)] * fHeightScale > h){
+            hits++;   // if so, mark as hit, and skip this work point.
+            break;
+        };
+        
+        dir = r.direction;
+        dir.y = 0;
+        v += Normalize(dir);   // fetch new working point
+    };
+    return hits;
+};
+
+Image* genLightmap(char* normal,Image* hm,vector3 fSunDir,int w,float fAmbient){
+    int i,j,hits;
+    float f,dot;
+    vector3 n,fVertex;
+    Image* lmap;
+    ray r;
+    
+    float fHeightScale = 10.0f / 255.0f;
+    lmap = new Image(w,w,1);
+    if (!lmap){printf("(!) Error: cannot alloc lightmap!\n");return 0;};
+    
+    for (j=0; jdata[j*w+i] * fHeightScale;
+         fVertex.z = j;
+         
+         f = fAmbient ;
+         
+         r.origin = fVertex + fSunDir * 2000.0f;
+         r.direction = fSunDir;
+         
+         // checks current working point for intersection
+         if (!intersect_map(fVertex,r,hm,fHeightScale)){
+             // compute the lighting equation
+             n.x = (float)(normal[3*(j*w+i)+0]);
+             n.y = (float)(normal[3*(j*w+i)+1]);
+             n.z = (float)(normal[3*(j*w+i)+2]);
+             f += 0.5f*(1.0f+DotProduct(Normalize(n),Normalize(fSunDir)));
+             if (f>1.0f) f = 1.0f;
+         };
+         
+         dot = f * 255.0f;
+         lmap->data[j*w+i] = (unsigned char)dot;
+         };
+         };
+         return lmap;
+         };
+
+*/

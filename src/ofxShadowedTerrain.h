@@ -80,9 +80,8 @@ public:
     
 private:	
 	
-	void updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
-	void updateLightMapFast(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
-    
+	
+
     
 	ofVec3f calculateNormal(int x, int y);
 	ofVec3f getVertexFromImg(ofFloatImage& img, int x, int y);
@@ -92,6 +91,10 @@ private:
     
     void loadHeightmapData(string _filename);
     
+    
+    void prepareForShadows();
+    void updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
+	void updateLightMapFast(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
     
     
     
