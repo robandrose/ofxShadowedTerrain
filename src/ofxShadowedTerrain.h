@@ -14,16 +14,13 @@ Eigentlich das Model für das Terrain, weiss alles, kann alles.
 #include "ofMain.h"
 #include "contours.h"
 
-#define NUM_GRID_POINTS 1024*1024*2
 
 struct heightMapData{
-    
     int ncols, nrows;
     float xllcorner, yllcorner;
     float nodata_value;
     int gridw, gridh;
     float cellsize;
-    
     vector<float>mydata;
     
     ofVec3f getVertexAt(int x, int y){
@@ -36,8 +33,6 @@ struct heightMapData{
 
 
 class ofxShadowedTerrain: public CRaster{
-
-    
     
 public:
 	
@@ -85,6 +80,7 @@ private:
     
 	ofVec3f calculateNormal(int x, int y);
 	ofVec3f getVertexFromImg(ofFloatImage& img, int x, int y);
+    float getValueFromImagePos(ofFloatImage& img, int x, int y);
     void addFace(ofMesh& mesh, ofVec3f a, ofVec3f b, ofVec3f c);
     void addFace(ofMesh& mesh, ofVec3f a, ofVec3f b, ofVec3f c, ofVec3f d);
     
@@ -95,8 +91,6 @@ private:
     void prepareForShadows();
     void updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
 	void updateLightMapFast(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
-    
-    
     
     
 	// ASC VARS	

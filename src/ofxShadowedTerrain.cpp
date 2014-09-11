@@ -102,7 +102,7 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 	}
 	
 	shadowimg.setFromPixels(lightmapforcalc, gridw, gridh, OF_IMAGE_GRAYSCALE);
-	//shadowimg.saveImage(filename);
+	shadowimg.saveImage(filename);
 }
 
 
@@ -140,27 +140,49 @@ void ofxShadowedTerrain::loadMapFromImage(string _filename){
     heightmapimg.loadImage(_filename);
 	
     mesh.setMode(OF_PRIMITIVE_TRIANGLES);
-	int skip = 1;
+	
+    int skip = 1;
+    
+    
 	gridw = heightmapimg.getWidth();
 	gridh = heightmapimg.getHeight();
 	
+    int rawindex=0;
+    
+    heightmapdataobj.ncols=heightmapimg.getWidth();
+    heightmapdataobj.nrows=heightmapimg.getHeight();
+    
+    for(int y = 0; y < gridh; y += 1) {
+		for(int x = 0; x < gridw ; x += 1) {
+            rawindex=x+y*gridw;
+            heightmapdataobj.mydata.push_back(getValueFromImagePos(heightmapimg, x, y));
+        }
+    }
+    
+
     for(int y = 0; y < gridh - skip; y += skip) {
 		for(int x = 0; x < gridw - skip; x += skip) {
 			ofVec3f nw = getVertexFromImg(heightmapimg, x, y);
 			ofVec3f ne = getVertexFromImg(heightmapimg, x + skip, y);
 			ofVec3f sw = getVertexFromImg(heightmapimg, x, y + skip);
 			ofVec3f se = getVertexFromImg(heightmapimg, x + skip, y + skip);
-			
 			addFace(mesh, nw, ne, se, sw);
 		}
 	}
-    shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
+  
+    mesh.smoothNormals(40);
+    prepareForShadows();
+    
 }
 
 
 
 ofVec3f ofxShadowedTerrain::getVertexFromImg(ofFloatImage& img, int x, int y) {
-    return ofVec3f(x, y, 100 * img.getColor(x, y).getBrightness());
+    return ofVec3f(x, y, getValueFromImagePos(img, x, y));
+}
+
+float ofxShadowedTerrain::getValueFromImagePos(ofFloatImage& img, int x, int y){
+    return 50 * img.getColor(x,y).getBrightness();
 }
 
 void ofxShadowedTerrain::addFace(ofMesh& mesh, ofVec3f a, ofVec3f b, ofVec3f c) {
@@ -191,7 +213,7 @@ void ofxShadowedTerrain::loadMapFromTextfile(string _filename){
 	int skip = 1;
 	gridw = heightmapdataobj.ncols;
 	gridh = heightmapdataobj.nrows;
-	
+    
     for(int y = 0; y < gridh - skip; y += skip) {
 		for(int x = 0; x < gridw - skip; x += skip) {
             ofVec3f nw= heightmapdataobj.getVertexAt(x, y);
@@ -201,8 +223,7 @@ void ofxShadowedTerrain::loadMapFromTextfile(string _filename){
             addFace(mesh, nw, ne, se, sw);
 		}
 	}
-    
-    shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
+    prepareForShadows();
 }
 
 
@@ -249,8 +270,6 @@ void ofxShadowedTerrain::loadHeightmapData(string _filename){
 			}
 		}
 	}
-    
-    prepareForShadows();
 }
 
 //***************************************************************** // END LOADING:
@@ -259,26 +278,16 @@ void ofxShadowedTerrain::loadHeightmapData(string _filename){
 
 void ofxShadowedTerrain::prepareForShadows(){
     
-	// calculate Vertices
-	
-	int offx=0;
-	int offy=0;
-	
-	gridw=ncols;
-	gridh=nrows;
-	
 	numvalues=gridw*gridh;
 	heightmap=new float[numvalues];
 	lightmapforcalc=new unsigned char[numvalues];
 	lightmap=new unsigned char[numvalues*4];
-	
-		
+    
 	for(int i=0;i<numvalues;i++){
 		heightmap[i]=heightmapdataobj.mydata[i];
 	}
     heightmaploaded=true;
-
-    
+    shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
 }
 
 
@@ -432,34 +441,24 @@ void ofxShadowedTerrain::loadMapFromTextfileOld(string _filename){
 ofVec3f ofxShadowedTerrain::getNormalAt(int x, int y){
 	
 	if(x>=0 && x<gridw && y>=0 && y<gridh){
-	
 		int index=x+(y*gridw);
 		return normals[index];
 	}
-	
 	return ofVec3f(0,0,0);
-	
 }
 
 ofVec3f ofxShadowedTerrain::getSmoothNormalAt(int x, int y){
-	
 	if(x>=0 && x<gridw && y>=0 && y<gridh){
-		
 		int index=x+(y*gridw);
 		return smoothnormals[index];
 	}
-	
 	return ofVec3f(0,0,0);
-	
 }
 
 
 void ofxShadowedTerrain::drawMesh(){
     mesh.draw();
 }
-
-
-
 
 void ofxShadowedTerrain::drawForColor(){
 	int ind1, ind2;
