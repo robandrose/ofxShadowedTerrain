@@ -169,8 +169,6 @@ void ofxShadowedTerrain::loadMapFromImage(string _filename){
 			addFace(mesh, nw, ne, se, sw);
 		}
 	}
-  
-    mesh.smoothNormals(40);
     prepareForShadows();
     
 }
