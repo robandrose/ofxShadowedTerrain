@@ -100,9 +100,8 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 		
 	}
 	blurimg.setFromPixels(lightmapforcalc, gridw, gridh);
-    blurimg.blurGaussian(5);
-    
-	shadowimg.setFromPixels(blurimg.getPixels(), gridw, gridh, OF_IMAGE_GRAYSCALE);
+    blurimg.blurGaussian(3);
+    shadowimg.setFromPixels(blurimg.getPixels(), gridw, gridh, OF_IMAGE_GRAYSCALE);
 	
    // shadowimg.saveImage(filename);
 }
