@@ -45,13 +45,13 @@ public:
     void loadMapFromImage(string _filename);
 	
     
-	ofVec3f getNormalAt(int x, int y);
-	ofVec3f getSmoothNormalAt(int x, int y);
-	
+    ofMesh* getMesh(){return &mesh;};
     
+    ofVec3f getNormalAt(int x, int y);
+	ofVec3f getSmoothNormalAt(int x, int y);
 	float* getHeightmap(){return heightmap;};
 	
-	int getHeightMapWidth(){return gridw;};
+        int getHeightMapWidth(){return gridw;};
 	int getHeightMapHeight(){return gridh;};
 	float getCellsize(){return cellsize;};
 	
