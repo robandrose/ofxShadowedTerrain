@@ -34,30 +34,26 @@ public:
 	ofxShadowedTerrain();
 	virtual ~ofxShadowedTerrain();
 	
-    
+    // Loading:
 	void loadMapFromTextfile(string _filename);
     void loadMapFromImage(string _filename);
 	
-    //void loadMapFromTextfileOld(string _filename);
-    
+    // Getters:
     ofMesh* getMesh(){return &mesh;};
-    
+    ofImage* getShadowImage();
+	
     ofVec3f getNormalAt(int x, int y);
 	ofVec3f getSmoothNormalAt(int x, int y);
 	float* getHeightmap(){return heightmap;};
-	
-    
     int getHeightMapWidth(){return gridw;};
 	int getHeightMapHeight(){return gridh;};
 	float getCellsize(){return cellsize;};
 	
-	void setLightAngles(float xangle, float yangle);
+	// Setterns
+    void setLightAngles(float xangle, float yangle);
 	void setLightDirection(ofVec3f _dir);
-	ofImage* getShadowImage();
-	
+	void setHeightlineParameters();
     
-    void setHeightlines();
-
     void drawMesh();
 
 	
@@ -83,7 +79,6 @@ private:
     void prepareForShadows();
     void updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
 	
-    
     
     ofMesh mesh;
     
