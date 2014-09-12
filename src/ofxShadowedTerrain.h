@@ -7,6 +7,7 @@
 #pragma once
 #include "ofMain.h"
 #include "ofxOpenCv.h"
+#include "ofxConrec.h"
 
 
 struct heightMapData{
@@ -54,6 +55,7 @@ public:
 
     void drawMesh();
     
+    ofxConrec conrec;
     
 private:	
 	
@@ -99,6 +101,9 @@ private:
 	ofColor	lightcolor;
 	ofImage shadowimg;
 	ofxCvGrayscaleImage blurimg;
+    
+
+    
     	
 };
 

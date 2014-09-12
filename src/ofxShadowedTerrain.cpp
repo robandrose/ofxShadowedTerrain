@@ -57,20 +57,19 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 	if(_dir==lightdir)return;
 	
 	lightdir=_dir;
-	int accuracy=2;
+	int accuracy=1;
 	
     string filename="media/shadowmaps/sm"+ofToString(_dir.x, accuracy)+"_"+ofToString(_dir.y, accuracy)+"_"+ofToString(_dir.z, accuracy)+".png";
 	
 	// Check if File already exists, if so return this file
 	ifstream ifile(ofToDataPath(filename, true).c_str());
 	
-    /*
+    
     if(ifile){
 		shadowimg.loadImage(filename);
 		return;
 	}
-	*/
-    
+	
     
 	float lightdirfloat[3];
 	lightdirfloat[0]=lightdir.x;
@@ -103,7 +102,7 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
     blurimg.blurGaussian(3);
     shadowimg.setFromPixels(blurimg.getPixels(), gridw, gridh, OF_IMAGE_GRAYSCALE);
 	
-   // shadowimg.saveImage(filename);
+    shadowimg.saveImage(filename);
 }
 
 
@@ -252,7 +251,6 @@ void ofxShadowedTerrain::loadHeightmapData(string _filename){
 //***************************************************************** // END LOADING:
 
 
-
 void ofxShadowedTerrain::prepareForShadows(){
     
 	numvalues=gridw*gridh;
@@ -265,158 +263,11 @@ void ofxShadowedTerrain::prepareForShadows(){
 	}
     heightmaploaded=true;
     shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
-}
-
-
-
-
-/*
-
-void ofxShadowedTerrain::loadMapFromTextfileOld(string _filename){
-	
-	ifstream data;
-	string line;
-	float zraw;
-	
-	data.open(ofToDataPath(_filename,true).c_str());
-	
-	while(!data.eof()){
-		getline(data, line);
-		vector<string>linevec=ofSplitString(line, " ");
-		if(linevec.size()>0){
-			if(linevec.at(0)=="NCOLS"){
-				ncols=atoi(linevec[1].c_str());
-			}else if(linevec.at(0)=="NROWS"){
-				nrows=atoi(linevec[1].c_str());
-			}
-			else if(linevec.at(0)=="XLLCORNER"){
-				xllcorner=atoi(linevec[1].c_str());
-			}
-			else if(linevec.at(0)=="YLLCORNER"){
-				yllcorner=atoi(linevec[1].c_str());
-			}
-			else if(linevec.at(0)=="CELLSIZE"){
-				cellsize=atoi(linevec[1].c_str());
-			}
-			else if(linevec.at(0)=="NODATA_VALUE"){
-				nodata_value=atoi(linevec[1].c_str());
-			}
-			else{
-				for(int i=0;i<linevec.size();i++){
-					zraw=atof(linevec[i].c_str());
-					if(zraw==nodata_value){
-						zraw=0;
-					}
-					zraw/=cellsize;
-					zraw*=zstretchfact;
-					heightmapdata.push_back(zraw);
-				}
-			}
-		}
-	}
-	
-
-	
     
-	// calculate Vertices
-	
-	int offx=0;
-	int offy=0;
-	
-	gridw=ncols;
-	gridh=nrows;
-	
-	numvalues=gridw*gridh;	
-	heightmap=new float[numvalues];
-	lightmapforcalc=new unsigned char[numvalues];
-	lightmap=new unsigned char[numvalues*4];
-	
-	
-	int xind=0;
-	int yind=0;
-	int origind;
-	float zval=0;
-	
-	
-	for(int i=0;i<numvalues;i++){
-		xind=(int)i%gridw;
-		yind=(int)floor(i/gridw);
-		origind=offx+xind+(offy+yind)*ncols;
-		heightmap[i]=heightmapdata[origind];
-	}
-	
-	
-	// Calculate Normals:		
-	
-	normals=new ofVec3f[numvalues];
-	smoothnormals=new ofVec3f[numvalues];
-	
-	
-	ofVec3f norm;
-	norm.set(0,0,0);
-	
-	for(int i=0;i<numvalues;i++){
-		normals[i]=norm;
-		smoothnormals[i]=norm;
-	}
-		
-	float x1,y1,z1;
-	float x2,y2,z2;
-	float x3,y3,z3;
-	float x4,y4,z4;
-	float c1, c2;
-	
-	int ind0, ind1, ind2, ind3, ind4, ind5, ind6, ind7, ind8;
-	ofVec3f vec0, vec1, vec2, vec3, vec4, vec5, vec6, vec7, vec8;
-	
-	for(int h=1;h<gridh-1; h++){
-		for(int i=1;i<gridw-1; i++){
-	
-			ind0=i+h*gridw;
-			ind1=(i)+(h-1)*gridw;
-			ind2=(i+1)+(h)*gridw;
-			ind3=(i)+(h+1)*gridw;
-			ind4=(i-1)+(h)*gridw;
-			
-            norm.x=heightmap[ind4]-heightmap[ind2];
-			norm.y=heightmap[ind1]-heightmap[ind3];
-			norm.z=2;
-			norm.normalize();
-            normals[ind0].set(norm);
-		}
-	}
-	
-	float smoothfakt=.6;
-    
-	for(int k=0;k<10;k++){
-        for(int h=1;h<gridh-1; h++){
-            for(int i=1;i<gridw-1; i++){
-                ind0=i+h*gridw;
-                
-                ind1=(i)+(h-1)*gridw;
-                ind2=(i+1)+(h)*gridw;
-                ind3=(i)+(h+1)*gridw;
-                ind4=(i-1)+(h)*gridw;
-                
-                norm=normals[ind0];
-                norm+=normals[ind1]*smoothfakt;
-                norm+=normals[ind2]*smoothfakt;
-                norm+=normals[ind3]*smoothfakt;
-                norm+=normals[ind4]*smoothfakt;
-                
-                norm.normalize();
-                smoothnormals[ind0]=norm;
-                
-            }
-        }
-	}
-	
-	heightmaploaded=true;
-    shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
+    conrec.setHeightMap(heightmap);
+    conrec.setSize(gridw, gridh);
+    conrec.init(0,120,200);
 }
-
- 
- */
 
  
 ofVec3f ofxShadowedTerrain::getNormalAt(int x, int y){
@@ -440,8 +291,6 @@ ofVec3f ofxShadowedTerrain::getSmoothNormalAt(int x, int y){
 void ofxShadowedTerrain::drawMesh(){
     mesh.draw();
 }
-
-
 
 
 
