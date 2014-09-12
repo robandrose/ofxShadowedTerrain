@@ -6,7 +6,6 @@
 
 #pragma once
 #include "ofMain.h"
-#include "contours.h"
 #include "ofxOpenCv.h"
 
 
@@ -27,7 +26,7 @@ struct heightMapData{
 };
 
 
-class ofxShadowedTerrain: public CRaster{
+class ofxShadowedTerrain{
     
 public:
 	
@@ -52,17 +51,8 @@ public:
 	// Setterns
     void setLightAngles(float xangle, float yangle);
 	void setLightDirection(ofVec3f _dir);
-	void setHeightlineParameters();
-    
-    void drawMesh();
 
-	
-	// CRaster Funktionen:
-	double value(double x,double y);
-	SPoint upper_bound();
-	SPoint lower_bound();
-	
-	
+    void drawMesh();
     
     
 private:	
@@ -109,10 +99,6 @@ private:
 	ofColor	lightcolor;
 	ofImage shadowimg;
 	ofxCvGrayscaleImage blurimg;
-    
-
-    
-	
-	
+    	
 };
 

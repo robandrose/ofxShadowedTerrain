@@ -107,28 +107,6 @@ void ofxShadowedTerrain::setLightDirection(ofVec3f _dir){
 }
 
 
-double ofxShadowedTerrain::value(double x, double y)
-{
-	if(x>=0 && x<gridw && y>=0 && y<gridh && heightmaploaded){
-		int index=(y*gridw)+x;
-		return heightmap[index];
-	}
-	return 0;
-}
-
-
-SPoint ofxShadowedTerrain::lower_bound()
-{
-	return SPoint(0,0);
-}
-
-SPoint ofxShadowedTerrain::upper_bound()
-{
-	return SPoint(1023,1023);
-}
-
-
-
 
 ofImage* ofxShadowedTerrain::getShadowImage(){
 	return &shadowimg;
