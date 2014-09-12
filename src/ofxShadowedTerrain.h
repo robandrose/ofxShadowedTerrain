@@ -1,14 +1,8 @@
 /*
- *  TerrainDataProvider.h
- *  LandscapeShadow4
- *
- *  Created by Matthias Rohrbach on 30.09.10.
- *  Copyright 2010 rob & rose grafik. All rights reserved.
- *
- 
-Eigentlich das Model für das Terrain, weiss alles, kann alles.
- 
+ *  ofxShadowedTerrain
+ *  Terrain container that provides a mesh, shadow images depending on direktional light direction and heightlines
  */
+
 
 #pragma once
 #include "ofMain.h"
@@ -40,10 +34,11 @@ public:
 	ofxShadowedTerrain();
 	virtual ~ofxShadowedTerrain();
 	
+    
 	void loadMapFromTextfile(string _filename);
-    void loadMapFromTextfileOld(string _filename);
     void loadMapFromImage(string _filename);
 	
+    //void loadMapFromTextfileOld(string _filename);
     
     ofMesh* getMesh(){return &mesh;};
     
@@ -51,19 +46,20 @@ public:
 	ofVec3f getSmoothNormalAt(int x, int y);
 	float* getHeightmap(){return heightmap;};
 	
-        int getHeightMapWidth(){return gridw;};
+    
+    int getHeightMapWidth(){return gridw;};
 	int getHeightMapHeight(){return gridh;};
 	float getCellsize(){return cellsize;};
 	
 	void setLightAngles(float xangle, float yangle);
 	void setLightDirection(ofVec3f _dir);
+	ofImage* getShadowImage();
 	
-	void drawForTexture();
-	void drawForColor();
+    
+    void setHeightlines();
+
     void drawMesh();
 
-
-	ofImage* getShadowImage();
 	
 	// CRaster Funktionen:
 	double value(double x,double y);
@@ -72,68 +68,53 @@ public:
 	
 	
     
-     ofMesh mesh;
     
 private:	
 	
-	
-
+    void loadHeightmapData(string _filename);
+    
     
 	ofVec3f calculateNormal(int x, int y);
 	ofVec3f getVertexFromImg(ofFloatImage& img, int x, int y);
     float getValueFromImagePos(ofFloatImage& img, int x, int y); 
     void addFace(ofMesh& mesh, ofVec3f a, ofVec3f b, ofVec3f c);
     void addFace(ofMesh& mesh, ofVec3f a, ofVec3f b, ofVec3f c, ofVec3f d);
-    
-    
-    void loadHeightmapData(string _filename);
-    
-    
+   
     void prepareForShadows();
     void updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]);
 	
     
-	// ASC VARS	
+    
+    ofMesh mesh;
+    
+    ofFloatImage heightmapimg;
+    heightMapData  heightmapdataobj;
+    
+    // TODO: remove these vars, its all in the struct:
 	int ncols, nrows;
 	float xllcorner, yllcorner;
 	float nodata_value;
 	int gridw, gridh;
-	float cellsize;	
+	float cellsize;
+    int numvalues;
+    bool heightmaploaded;
+	float zstretchfact;
 	
-    
-    
-    
-	vector<float>heightmapdata;
-	
+    // Normals are also in the mesh, maybe have a smoothed mesh? and get the smoothednormals from there?
 	ofVec3f* normals;
 	ofVec3f* smoothnormals;
 	float* heightmap;
     
-	unsigned char *lightmap;
+    unsigned char *lightmap;
 	unsigned char *lightmapforcalc;
 	
-	int numvalues;
-	
 	ofVec3f lightdir;
-	
-	bool heightmaploaded;
-	
 	ofColor shadowcolor;
+	float shadowalpha;
 	ofColor	lightcolor;
 	ofImage shadowimg;
 	ofxCvGrayscaleImage blurimg;
     
-	float shadowalpha;
-	float zstretchfact;
-    
-    
-    
-    
-   
-    ofFloatImage heightmapimg;
-    heightMapData  heightmapdataobj;
-    
-
 
     
 	

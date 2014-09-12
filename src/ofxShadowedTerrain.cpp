@@ -292,7 +292,7 @@ void ofxShadowedTerrain::prepareForShadows(){
 
 
 
-
+/*
 
 void ofxShadowedTerrain::loadMapFromTextfileOld(string _filename){
 	
@@ -437,14 +437,18 @@ void ofxShadowedTerrain::loadMapFromTextfileOld(string _filename){
     shadowimg.allocate(gridw,gridh, OF_IMAGE_GRAYSCALE);
 }
 
+ 
+ */
+
+ 
 ofVec3f ofxShadowedTerrain::getNormalAt(int x, int y){
-	
 	if(x>=0 && x<gridw && y>=0 && y<gridh){
 		int index=x+(y*gridw);
 		return normals[index];
 	}
 	return ofVec3f(0,0,0);
 }
+
 
 ofVec3f ofxShadowedTerrain::getSmoothNormalAt(int x, int y){
 	if(x>=0 && x<gridw && y>=0 && y<gridh){
@@ -459,106 +463,11 @@ void ofxShadowedTerrain::drawMesh(){
     mesh.draw();
 }
 
-void ofxShadowedTerrain::drawForColor(){
-	int ind1, ind2;
-	float x1,y1,z1, x2,y2,z2;
-	
-	ofColor c1;
-	ofColor c2;
-	
-	
-	for(int h=0;h<gridh-1; h++){
-		
-		glBegin(GL_TRIANGLE_STRIP);
-		
-		for(int i=0;i<gridw; i++){
-			
-			ind1=i+(h)*gridw;
-			ind2=i+(h+1)*gridw;
-			
-			x1=i;
-			y1=h;
-			z1=heightmap[ind1];
-			
-			x2=i;
-			y2=h+1;
-			z2=heightmap[ind2];
-			
-			c1.setHsb(z1*10, 1, 1, 1);
-			c2.setHsb(z2*10,1,1,1);
-			
-			
-			glColor3f(c1.r,c1.g,c1.b);
-			//glTexCoord2d(i/(double)gridw,h/(double)gridh);
-			//glNormal3f(normals[ind1].x, normals[ind1].y, normals[ind1].z);
-			glVertex3f(x1,y1,z1);
-			
-			glColor3f(c2.r,c2.g,c2.b);
-			//glTexCoord2d((i)/(double)gridw,(h+1)/(double)gridh);
-			//glNormal3f(normals[ind2].x, normals[ind2].y, normals[ind2].z);
-			glVertex3f(x2, y2, z2);
-			
-		}
-		glEnd();
-	}
-	
-}
 
 
-void ofxShadowedTerrain::drawForTexture(){
-	int ind1, ind2;
-	float x1,y1,z1, x2,y2,z2;
-	float c1,c2;
-	
-	int step=3;
-	
-	for(int h=0;h<gridh-step; h+=step){
-		
-		glBegin(GL_TRIANGLE_STRIP);
-		
-		int i;
-		
-		for(i=0;i<gridw; i+=step){
-			
-			ind1=i+(h)*gridw;
-			ind2=i+(h+step)*gridw;
-			
-			x1=i;
-			y1=h;
-			z1=heightmap[ind1];
-			
-			x2=i;
-			y2=h+step;
-			z2=heightmap[ind2];
-			
-			
-            glTexCoord2d(i,h);
-			glNormal3f(normals[ind1].x, normals[ind1].y, normals[ind1].z);
-			glVertex3f(x1,y1,z1);
-			
-			glTexCoord2d(i,h+step);
-			glNormal3f(normals[ind2].x, normals[ind2].y, normals[ind2].z);
-			glVertex3f(x2, y2, z2);
-			
-			if(i==gridw-1)break;
-			if(i+step>gridw-1){
-				i=gridw-1-step;
-			}
-			
-		}
-		glEnd();
-		if(h==gridh-step-1)break;
-		if(h+step>gridh-step-1){
-			h=gridh-1-step-step;
-		}
-	}
-
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////  LIGHT MAPPING
-
-
 
 void ofxShadowedTerrain::updateLightMap(float *heightmap, unsigned char *lightmap, int size, float lightDir[3]){
 	
