@@ -34,14 +34,17 @@ public:
 	ofxShadowedTerrain();
 	virtual ~ofxShadowedTerrain();
 	
+    
     // Loading:
 	void loadMapFromTextfile(string _filename);
     void loadMapFromImage(string _filename);
 	
+    void setStretchfactor(float _stretchfactor);
+    
+    
     // Getters:
     ofMesh* getMesh(){return &mesh;};
-    ofImage* getShadowImage();
-	
+    ofImage* getShadowImage();	
     ofVec3f getNormalAt(int x, int y);
 	ofVec3f getSmoothNormalAt(int x, int y);
 	float* getHeightmap(){return heightmap;};
@@ -73,9 +76,11 @@ private:
 	
     
     ofMesh mesh;
+    vector<ofMeshFace> triangles;
     
     ofFloatImage heightmapimg;
     heightMapData  heightmapdataobj;
+    
     
     // TODO: remove these vars, its all in the struct:
 	int ncols, nrows;
@@ -101,6 +106,9 @@ private:
 	ofColor	lightcolor;
 	ofImage shadowimg;
 	ofxCvGrayscaleImage blurimg;
+    
+    
+    int skipx, skipy;
     
 
     
