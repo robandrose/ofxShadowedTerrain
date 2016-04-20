@@ -34,12 +34,15 @@ public:
 	ofxShadowedTerrain();
 	virtual ~ofxShadowedTerrain();
 	
+    // Before Loading data;
+    void setStretchfactor(float _stretchfactor);
+    void setSkipValues(int _skipx, int _skipy);
+
     
     // Loading:
 	void loadMapFromTextfile(string _filename);
     void loadMapFromImage(string _filename);
 	
-    void setStretchfactor(float _stretchfactor);
     
     
     // Getters:
@@ -55,6 +58,7 @@ public:
 	// Setterns
     void setLightAngles(float xangle, float yangle);
 	void setLightDirection(ofVec3f _dir);
+    
 
     void drawMesh();
     

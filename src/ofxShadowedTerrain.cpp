@@ -23,11 +23,10 @@ ofxShadowedTerrain::ofxShadowedTerrain(){
 	lightcolor.b=255;
 	lightcolor.a=255;
     
-	zstretchfact=50;
+	zstretchfact=2;
     
-    
-    skipx=5;
-    skipy=5;
+    skipx=3;
+    skipy=3;
 }
 
 ofxShadowedTerrain::~ofxShadowedTerrain(){
@@ -38,6 +37,11 @@ ofxShadowedTerrain::~ofxShadowedTerrain(){
 
 //***************************************************************** // LOADING:
 
+void ofxShadowedTerrain::setSkipValues(int _skipx, int _skipy){
+    skipx=_skipx;
+    skipy=_skipy;
+    
+}
 
 void ofxShadowedTerrain::setStretchfactor(float _stretchfactor){
     zstretchfact=_stretchfactor;
@@ -125,18 +129,18 @@ void ofxShadowedTerrain::loadMapFromTextfile(string _filename){
     
     loadHeightmapData(_filename);
     mesh.setMode(OF_PRIMITIVE_TRIANGLES);
-	int skip = 1;
+	
 	gridw = heightmapdataobj.ncols;
 	gridh = heightmapdataobj.nrows;
     
     triangles.clear();
     
-    for(int y = 0; y < gridh - skip; y += skip) {
-		for(int x = 0; x < gridw - skip; x += skip) {
+    for(int y = 0; y < gridh - skipy; y += skipy) {
+		for(int x = 0; x < gridw - skipx; x += skipx) {
             ofVec3f nw= heightmapdataobj.getVertexAt(x, y);
-            ofVec3f ne=heightmapdataobj.getVertexAt(x+skip, y);
-			ofVec3f sw=heightmapdataobj.getVertexAt(x, y+skip);
-			ofVec3f se=heightmapdataobj.getVertexAt(x+skip, y+skip);
+            ofVec3f ne=heightmapdataobj.getVertexAt(x+skipx, y);
+			ofVec3f sw=heightmapdataobj.getVertexAt(x, y+skipy);
+			ofVec3f se=heightmapdataobj.getVertexAt(x+skipy, y+skipy);
             addFace(mesh, nw, ne, se, sw);
 		}
 	}
