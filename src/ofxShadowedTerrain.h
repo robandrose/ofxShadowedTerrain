@@ -7,7 +7,6 @@
 #pragma once
 #include "ofMain.h"
 #include "ofxOpenCv.h"
-#include "ofxConrec.h"
 
 
 struct heightMapData{
@@ -49,6 +48,7 @@ public:
     ofMesh* getMesh(){return &mesh;};
     ofImage* getShadowImage();	
     ofVec3f getNormalAt(int x, int y);
+    float getHeightAt(int x, int y);
 	ofVec3f getSmoothNormalAt(int x, int y);
 	float* getHeightmap(){return heightmap;};
     int getHeightMapWidth(){return gridw;};
@@ -59,10 +59,8 @@ public:
     void setLightAngles(float xangle, float yangle);
 	void setLightDirection(ofVec3f _dir);
     
-
     void drawMesh();
     
-    ofxConrec conrec;
     
 private:	
 	

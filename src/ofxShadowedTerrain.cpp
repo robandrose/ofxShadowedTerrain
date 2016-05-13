@@ -81,10 +81,8 @@ void ofxShadowedTerrain::loadMapFromImage(string _filename){
             addFace(mesh, nw, ne, se, sw);
 		}
 	}
-    
-    
     mesh.setFromTriangles(triangles);
-    
+
     prepareForShadows();
 }
 
@@ -309,7 +307,14 @@ ofVec3f ofxShadowedTerrain::getSmoothNormalAt(int x, int y){
 	return ofVec3f(0,0,0);
 }
 
-
+// NOT REALLY NEEDED ANYMORE!?
+float ofxShadowedTerrain::getHeightAt(int x, int y){
+    if(x>=0 && x<gridw && y>=0 && y<gridh){
+        int index=x+(y*gridw);
+        return heightmapdataobj.mydata[index];;
+    }
+    return 0;
+}
 
 
 
